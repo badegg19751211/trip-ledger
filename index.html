@@ -114,6 +114,10 @@
   .record .tag .avatar { width: 18px; height: 18px; font-size: 10px; }
   .record .total { font-size: 14px; font-weight: bold; color: #2d3748; }
   .empty { text-align: center; color: #a0aec0; padding: 20px 0; font-size: 14px; }
+  textarea { width:100%; padding:10px; border:1px solid #cbd5e0; border-radius:8px; font-size:13px; min-height:70px; }
+  .share-out { margin-top:10px; }
+  .share-out input { width:100%; font-size:12px; margin-bottom:8px; background:#f7fafc; }
+  .btn-copy { width:100%; padding:10px; font-size:15px; background:#38a169; margin-bottom:8px; }
 </style>
 </head>
 <body>
@@ -122,8 +126,18 @@
 
   <div class="card">
     <h2>分享给同伴</h2>
-    <div class="hint">点下面按钮，会下载一个「带数据」的网页。发给同伴，他打开就能接着填，不用从头来。</div>
-    <button class="btn-add" onclick="exportShare()">生成分享网页（含数据）</button>
+    <div class="hint">点「生成分享链接」，再点复制，把链接发到微信。同伴点开就有你的全部数据，接着填。</div>
+    <button class="btn-add" onclick="makeLink()">生成分享链接（含数据）</button>
+    <div class="share-out" id="shareOut" style="display:none">
+      <input type="text" id="shareUrl" readonly onclick="this.select()">
+      <button class="btn-copy" onclick="copyShare()">复制链接</button>
+      <div class="hint" id="shareNote"></div>
+    </div>
+    <div class="hint" style="margin-top:12px">收到同伴的链接或口令？粘到下面，点导入。</div>
+    <textarea id="importBox" placeholder="粘贴链接或口令"></textarea>
+    <button class="btn-copy" style="background:#3182ce" onclick="doImport()">导入数据</button>
+    <div class="hint">电脑上也可以用「生成分享网页」下载文件发给别人。</div>
+    <button class="btn-ghost" onclick="exportShare()">生成分享网页（下载文件，电脑用）</button>
   </div>
 
   <div class="card">
@@ -177,7 +191,19 @@ var EMBEDDED = null; /*EMBED_HERE*/ // 分享网页会注入数据
 var state = { people: [], items: [], nextId: 1 };
 var curPart = {}; // 当前编辑中的参与人选择 {id:true}
 
-if (typeof EMBEDDED !== "undefined" && EMBEDDED && EMBEDDED.people) {
+function parseHash() {
+  var m = (location.hash || "").match(/d=([^&]+)/);
+  if (!m) return null;
+  try {
+    return JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+  } catch(e) { return null; }
+}
+var fromHash = parseHash();
+if (fromHash && fromHash.people) {
+  state = fromHash;
+  save();
+  history.replaceState(null, "", location.pathname + location.search);
+} else if (typeof EMBEDDED !== "undefined" && EMBEDDED && EMBEDDED.people) {
   state = EMBEDDED;
 } else {
   try {
